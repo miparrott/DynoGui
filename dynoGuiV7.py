@@ -3,29 +3,29 @@
 By Michael Parrott, started on 9/18/18
 GUI for LV Dyno Operation, provides live view of current test parameters, inputs for
 filename, test parameters, and limits (with some error checking, careful though!)
-                                              ____
-  ___                                      .-~. /_"-._
-`-._~-.                                  / /_ "~o\  :Y
-      \  \                                / : \~x.  ` ')
-      ]  Y                              /  |  Y< ~-.__j
-     /   !                        _.--~T : l  l<  /.-~
-    /   /                 ____.--~ .   ` l /~\ \<|Y
-   /   /             .-~~"        /| .    ',-~\ \L|
-  /   /             /     .^   \ Y~Y \.^>/l_   "--'
- /   Y           .-"(  .  l__  j_j l_/ /~_.-~    .
-Y    l          /    \  )    ~~~." / `/"~ / \.__/l_
-|     \     _.-"      ~-{__     l  :  l._Z~-.___.--~
-|      ~---~           /   ~~"---\_  ' __[>
-l  .                _.^   ___     _>-y~
- \  \     .      .-~   .-~   ~>--"  /
-  \  ~---"            /     ./  _.-'
-   "-.,_____.,_  _.--~\     _.-~
-               ~~     (   _}       -Row
-                      `. ~(
-                        )  \
-                  /,`--'~\--'~\
-                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-'''
+''' 
+#                                              ____
+#   ___                                      .-~. /_"-._
+#  `-._~-.                                  / /_ "~o\  :Y
+#       \  \                                / : \~x.  ` ')
+#       ]  Y                              /  |  Y< ~-.__j
+#      /   !                        _.--~T : l  l<  /.-~
+#     /   /                 ____.--~ .   ` l /~\ \<|YFUCKYOURQUESTION IMA FUCKING DINOSAUR
+#    /   /             .-~~"        /| .    ',-~\ \L|
+#   /   /             /     .^   \ Y~Y \.^>/l_   "--'
+#  /   Y           .-"(  .  l__  j_j l_/ /~_.-~    .
+# Y    l          /    \  )    ~~~." / `/"~ / \.__/l_
+# |     \     _.-"      ~-{__     l  :  l._Z~-.___.--~
+# |      ~---~           /   ~~"---\_  ' __[>
+# l  .                _.^   ___     _>-y~
+#  \  \     .      .-~   .-~   ~>--"  /
+#   \  ~---"            /     ./  _.-'
+#    "-.,_____.,_  _.--~\     _.-~
+#                ~~     (   _}       -Row
+#                       `. ~(
+#                         )  \
+#                   /,`--'~\--'~\
+#                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 import visa,nidaqmx
 import csv,math
 from collections import deque
@@ -125,6 +125,9 @@ class MainWindowTest(QWidget):
 
 		self.connectLbl = QLabel('Not Connected')
 
+		self.quickRunbtn = QPushButton('Quick Run')
+		self.quickRunbtn.clicked.connect(self.openNewWindow)
+
 		inputForm = QFormLayout()
 
 		# Input TextField
@@ -151,10 +154,9 @@ class MainWindowTest(QWidget):
 		connectLay.addWidget(self.connectLbl)
 		self.leftSideLayout.addLayout(connectLay)
 		self.leftSideLayout.addStretch()
-		#self.leftSideLayout.addStretch()
+		self.leftSideLayout.addWidget(self.quickRunbtn)
 		self.leftSideLayout.addWidget(self.startbtn)
 		self.leftSideLayout.addWidget(self.stopbtn)
-		#self.leftSideLayout.addWidget(lbl)
 		self.leftSideLayout.addStretch()
 		inputForm.addRow(vInL,self.vIn)
 		inputForm.addRow(tLabel,self.tInBox)
@@ -415,6 +417,9 @@ class MainWindowTest(QWidget):
 		print('Stall current acquired, Ts = ' + str(tempCur))
 		return tempCur-curStep
 
+	def popupRun(self):
+		print('Popup')
+
 	def displayData(self,data,voltage,scrubCurrent=0):
 		# need to update on screen values
 		i = data['Current']
@@ -646,6 +651,71 @@ class MainWindowTest(QWidget):
 			self.timerDisplay.display(delayTime - tLeft)
 		self.timerDisplay.display(0)
 
+
+	def openNewWindow(self):
+		print('Trying to open new window now')
+		self.popup = PopUpRun()
+		self.popup.setGeometry(QRect(100,100,200,200))
+		self.popup.show()
+
+
+class PopUpRun(QWidget):
+	def __init__(self):
+		QWidget.__init__(self)
+		self.initUI()
+	def initUI(self):
+		print('initiating ui?')
+		#initialize control sliders and start button
+		vSlideLabel = QLabel('Voltage (V)')
+		self.vSlider = QSlider(Qt.Horizontal)
+		self.vSlider.setMinimum(0.0)
+		self.vSlider.setMaximum(16.0)
+		self.vSlider.setTickPosition(QSlider.TicksBelow)
+		self.vSlider.setTickInterval(.1)
+		self.vSlider.sliderMoved.connect(self.vChange)
+
+		self.vLCD = QLCDNumber()
+		self.vLCD.display(self.vSlider.value())
+		voltL = QLabel('Voltage')
+
+		scrubberTorqueLabel = QLabel('Brake Torque (Nm)')
+		self.scrubTorque = QSlider(Qt.Horizontal)
+		self.scrubTorque.setMinimum(0.00)
+		self.scrubTorque.setMaximum(.15)
+		self.scrubTorque.setTickPosition(QSlider.TicksBelow)
+		self.scrubTorque.setTickInterval(.1)
+		self.scrubTorque.sliderMoved.connect(self.tChange)
+
+		self.tLCD = QLCDNumber()
+		self.tLCD.display(self.scrubTorque.value())
+		tL = QLabel('Torque')
+
+		controls = QFormLayout()
+		controls.addRow(vSlideLabel,self.vSlider)
+		controls.addRow(voltL,self.vLCD)
+		controls.addRow(scrubberTorqueLabel,self.scrubTorque)
+		controls.addRow(tL,self.tLCD)
+
+		self.startPop = QPushButton('Start Run',self)
+		self.startPop.clicked.connect(self.startClicked)
+		self.layout = QVBoxLayout()
+		self.layout.addLayout(controls)
+		self.layout.addWidget(self.startPop)
+
+		self.setLayout(self.layout)
+		self.show()
+
+	def startClicked(self):
+		print('starting off')
+
+	def activateRun(self):
+		print('now')
+
+	def vChange(self):
+		print('slider changed')
+
+	def tChange(self):
+		print('torque changed')
 ######################################### Main  #############################
 
 
@@ -653,4 +723,5 @@ class MainWindowTest(QWidget):
 if __name__ == '__main__':
 	app = QApplication(sys.argv)
 	w = MainWindowTest()
+	#w = PopUpRun()
 	sys.exit(app.exec_())
